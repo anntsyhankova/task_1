@@ -2,6 +2,7 @@ package tsyhankova.ann;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import tsyhankova.ann.ftpclient.ImplementedFTPClient;
 import tsyhankova.ann.ftpclient.SimpleFTPClient;
 
 import java.io.FileInputStream;
@@ -25,6 +26,38 @@ public class Main {
         main.apacheImpl();
     }
 
+    private void apacheImpl(){
+        ImplementedFTPClient client = new ImplementedFTPClient();
+        try {
+            //connect to ftp server
+            client.connect(ftpServerUrl, port);
+            //enterLocalPassiveMode
+            client.enterLocalPassiveMode();
+            //login
+            client.login("test", "test");
+            //Go to passive mode
+            client.enterPassiveMode();
+            //get directories names
+            List<String> directories = client.getDirectoryNames("/");
+            //for every name in list change working dir but only first layer
+            for(String directoryName : directories){
+                System.out.println("/"+directoryName);
+                client.changeWorkingDirectory("/"+directoryName);
+            }
+            //get back to parent
+            client.changeToParentDirectory();
+            //upload file
+            client.uploadFile("aqa.txt");
+            //delete file
+            client.deleteFile("aqa.txt");
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }finally {
+            client.disconnect();
+        }
+    }
+
     private void myImpl(){
         SimpleFTPClient client = new SimpleFTPClient();
         try {
@@ -32,59 +65,6 @@ public class Main {
             client.list();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private void apacheImpl(){
-        FTPClient client = new FTPClient();
-        try {
-            //connect to ftp server
-            client.connect(ftpServerUrl, port);
-            showServerReply(client);
-            //enterLocalPassiveMode
-            client.enterLocalPassiveMode();
-            showServerReply(client);
-            //login
-            client.login("test", "test");
-            showServerReply(client);
-            //Go to passive mode
-            client.pasv();
-            showServerReply(client);
-            //
-            List<String> names = Arrays.stream(client.listDirectories("/")).map(FTPFile::getName).toList();
-            showServerReply(client);
-            for(String dirName : names){
-                System.out.println("/"+dirName);
-                client.changeWorkingDirectory("/"+dirName);
-                showServerReply(client);
-            }
-            client.changeToParentDirectory();
-            showServerReply(client);
-            FileInputStream fileInputStream = new FileInputStream("src/main/resources/aqa.txt");
-            client.storeFile("aqa.txt", fileInputStream);
-            showServerReply(client);
-            client.deleteFile("aqa.txt");
-            showServerReply(client);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }finally {
-            try {
-                if (client.isConnected()) {
-                    client.logout();
-                    client.disconnect();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    private void showServerReply(FTPClient ftpClient) {
-        String[] replies = ftpClient.getReplyStrings();
-        if (replies != null && replies.length > 0) {
-            for (String aReply : replies) {
-                System.out.println("SERVER: " + aReply);
-            }
         }
     }
 }
